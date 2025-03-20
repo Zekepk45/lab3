@@ -85,24 +85,61 @@ library ieee;
   use ieee.std_logic_1164.all;
   use ieee.numeric_std.all;
  
-entity thunderbird_fsm is 
---  port(
-	
---  );
+entity thunderbird_fsm is
+    port (
+        i_clk, i_reset  : in    std_logic;
+        i_left, i_right : in    std_logic;
+        o_lights_L      : out   std_logic_vector(2 downto 0);
+        o_lights_R      : out   std_logic_vector(2 downto 0)
+    );
 end thunderbird_fsm;
 
 architecture thunderbird_fsm_arch of thunderbird_fsm is 
 
 -- CONSTANTS ------------------------------------------------------------------
-  
+signal f_q : std_logic_vector(2 downto 0) := "000";
+signal f_qnext : std_logic_vector(2 downto 0) := "000";
+
 begin
 
 	-- CONCURRENT STATEMENTS --------------------------------------------------------	
-	
+	f_qnext(0) <= (not(f_q(2)) and not(f_q(0)) and i_left) or
+	   (not(f_q(2)) and f_q(1) and not(f_q(0)) and not(i_left)) or
+	   (not(f_q(2)) and f_q(1) and not(f_q(0))) or
+	   (f_q(2) and f_q(1) and not(f_q(0)));
+	f_qnext(1) <= (not(f_q(2) or f_q(1) or f_q(0)) and not(i_left) and i_right) or
+	   (not(f_q(2)) and f_q(1) and not(f_q(0))) or
+	   (f_q(2) and not(f_q(1)) and f_q(0)) or
+	   (f_q(2) and f_q(1) and not(f_q(0)));
+	f_qnext(2) <= (not(f_q(2) or f_q(1) or f_q(0)) and i_left and not(i_right)) or
+	   (not(f_q(2)) and f_q(1) and f_q(0)) or
+	   (f_q(2) and not(f_q(1)) and f_q(0)) or
+	   (f_q(2) and f_q(1) and not(f_q(0)));
     ---------------------------------------------------------------------------------
-	
+	o_lights_L(0) <= (not(f_q(2)) and not(f_q(1)) and f_q(0)) or
+	   (f_q(2) and f_q(0)) or
+	   (f_q(2) and f_q(1) and not(f_q(0)));
+	o_lights_L(1) <= (not(f_q(2)) and not(f_q(1)) and f_q(0)) or
+	   (f_q(2) and f_q(1));
+	o_lights_L(2) <= (not(f_q(2)) and not(f_q(1)) and f_q(0)) or
+	   (f_q(2) and f_q(0) and f_q(1));
+	o_lights_R(0) <= (not(f_q(2)) and f_q(1) and not(f_q(0))) or
+	   (not(f_q(2)) and f_q(0)) or
+	   (f_q(2) and not(f_q(1)) and not(f_q(0)));
+	o_lights_R(1) <= (f_q(2) and not(f_q(1)) and not(f_q(0))) or
+	   (not(f_q(2)) and f_q(0));
+	o_lights_R(2) <= (not(f_q(2)) and not(f_q(1)) and f_q(0)) or
+	   (f_q(2) and not(f_q(1)) and not(f_q(0)));
 	-- PROCESSES --------------------------------------------------------------------
-    
+    register_proc : process (i_clk, i_reset)
+    begin
+    if i_reset = '1' then
+        f_q <= "000";        -- reset state is yellow
+    elsif (rising_edge(i_clk)) then
+        f_q <= f_qnext;    -- next state becomes current state
+    end if;
+			--Reset state is yellow
+	end process register_proc;
 	-----------------------------------------------------					   
 				  
 end thunderbird_fsm_arch;
